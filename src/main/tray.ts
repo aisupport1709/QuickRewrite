@@ -76,7 +76,11 @@ export class TrayController {
     }
     this.stopAnimation();
 
-    if (state !== "error" && state !== "done") {
+    // Only remember "empty"/"ready" as the state to revert to after
+    // done/error — "processing" must never be captured here, or the
+    // done/error revert timer would loop back into "processing" and get
+    // stuck (since nothing re-triggers a further transition from there).
+    if (state === "empty" || state === "ready") {
       this.preErrorState = state;
     }
     this.state = state;
