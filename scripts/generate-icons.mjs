@@ -93,10 +93,12 @@ function distToSegment(x, y, x1, y1, x2, y2) {
  * bar icons instead of a plain filled circle.
  */
 function drawPencil(rgba, size, rgb, alpha = 255) {
-  const stroke = size * 0.09;
-  // Shaft runs from lower-left to upper-right at a natural writing angle.
-  const x1 = size * 0.24, y1 = size * 0.82;
-  const x2 = size * 0.72, y2 = size * 0.24;
+  const stroke = size * 0.13;
+  // Shaft runs from lower-left to upper-right at a natural writing angle,
+  // kept compact (doesn't reach the corners) so state decorations have
+  // clear space in the bottom-right and below.
+  const x1 = size * 0.28, y1 = size * 0.68;
+  const x2 = size * 0.68, y2 = size * 0.24;
 
   for (let y = 0; y < size; y++) {
     for (let x = 0; x < size; x++) {
@@ -109,11 +111,11 @@ function drawPencil(rgba, size, rgb, alpha = 255) {
 
   // Pencil tip (small triangle beyond x2,y2 continuing the same angle).
   const angle = Math.atan2(y2 - y1, x2 - x1);
-  const tipLen = size * 0.14;
+  const tipLen = size * 0.16;
   const tipX = x2 + Math.cos(angle) * tipLen;
   const tipY = y2 + Math.sin(angle) * tipLen;
-  const perpX = Math.cos(angle + Math.PI / 2) * (stroke * 0.65);
-  const perpY = Math.sin(angle + Math.PI / 2) * (stroke * 0.65);
+  const perpX = Math.cos(angle + Math.PI / 2) * (stroke * 0.7);
+  const perpY = Math.sin(angle + Math.PI / 2) * (stroke * 0.7);
 
   const triPoints = [
     [x2 + perpX, y2 + perpY],
@@ -157,22 +159,32 @@ function fillCircle(rgba, size, cx, cy, r, rgb, alpha) {
   }
 }
 
-/** Ring (stroked circle outline) — used for the processing spinner arc. */
-function strokeArc(rgba, size, cx, cy, r, stroke, startAngle, endAngle, rgb, alpha) {
-  const steps = 64;
-  for (let i = 0; i <= steps; i++) {
-    const t = startAngle + ((endAngle - startAngle) * i) / steps;
-    const px = cx + Math.cos(t) * r;
-    const py = cy + Math.sin(t) * r;
-    fillCircle(rgba, size, px, py, stroke / 2, rgb, alpha);
+/**
+ * Three dots in a row along the bottom edge, classic "loading" indicator.
+ * Positioned in the clear strip below the pencil's shaft (which stays
+ * above y=0.75 — see drawPencil). activeIndex (0-2) makes one dot larger
+ * than the other two; cycling it across frames produces a left-to-right
+ * bounce.
+ */
+function drawLoadingDots(rgba, size, activeIndex, rgb, alpha) {
+  const y = size * 0.93;
+  const spacing = size * 0.16;
+  const cx = size * 0.5;
+  const baseR = size * 0.05;
+  const activeR = size * 0.09;
+
+  for (let i = 0; i < 3; i++) {
+    const dotX = cx + (i - 1) * spacing;
+    const isActive = i === activeIndex;
+    fillCircle(rgba, size, dotX, y, isActive ? activeR : baseR, rgb, alpha);
   }
 }
 
 /** Checkmark, drawn as two connected thick line segments. */
 function drawCheck(rgba, size, cx, cy, scale, rgb, alpha) {
-  const stroke = size * 0.09;
-  const x1 = cx - scale * 0.5, y1 = cy;
-  const x2 = cx - scale * 0.12, y2 = cy + scale * 0.4;
+  const stroke = size * 0.12;
+  const x1 = cx - scale * 0.5, y1 = cy - scale * 0.05;
+  const x2 = cx - scale * 0.12, y2 = cy + scale * 0.35;
   const x3 = cx + scale * 0.55, y3 = cy - scale * 0.45;
   for (let y = 0; y < size; y++) {
     for (let x = 0; x < size; x++) {
@@ -185,60 +197,61 @@ function drawCheck(rgba, size, cx, cy, scale, rgb, alpha) {
 
 /** Exclamation mark: a vertical bar plus a dot below it. */
 function drawExclamation(rgba, size, cx, cy, scale, rgb, alpha) {
-  const stroke = size * 0.1;
-  const barTopY = cy - scale * 0.5;
-  const barBottomY = cy + scale * 0.08;
+  const stroke = size * 0.13;
+  const barTopY = cy - scale * 0.55;
+  const barBottomY = cy;
   for (let y = 0; y < size; y++) {
     for (let x = 0; x < size; x++) {
       const d = distToSegment(x + 0.5, y + 0.5, cx, barTopY, cx, barBottomY);
       if (d <= stroke / 2) setPixel(rgba, size, x, y, rgb, alpha);
     }
   }
-  fillCircle(rgba, size, cx, cy + scale * 0.32, stroke / 2, rgb, alpha);
+  fillCircle(rgba, size, cx, cy + scale * 0.3, stroke / 2, rgb, alpha);
 }
 
 /**
- * Draws the state-specific decoration near the pencil tip.
+ * Draws the state-specific decoration.
  * - ready/empty: nothing extra (plain pencil)
- * - processing: a partial ring "spinner" arc near the tip; rotationStep
- *   (0-7) advances the arc's start angle to produce an animated spin
- *   when the frames are cycled by the tray controller
- * - done: a checkmark badge
- * - error: an exclamation badge
- * All shapes are pure silhouette so they remain valid macOS template images.
+ * - processing: 3 loading dots along the bottom edge; frame (0-2) selects
+ *   which dot is enlarged, producing a left-to-right bounce when the tray
+ *   controller cycles frames
+ * - done: a bold checkmark in the bottom-right corner
+ * - error: a bold exclamation mark in the bottom-right corner
+ * The pencil shaft stays within the top-left 0.75 of the canvas (see
+ * drawPencil), so both the bottom edge and bottom-right corner are clear
+ * space for these decorations. All shapes are pure silhouette so they
+ * remain valid macOS template images.
  */
-function drawStateDecoration(rgba, size, state, rgb, alpha, rotationStep = 0) {
-  // Badge/decoration is centered near the lower-left (away from the pencil
-  // tip at upper-right) so it doesn't collide with the shaft.
-  const cx = size * 0.30;
-  const cy = size * 0.68;
-
+function drawStateDecoration(rgba, size, state, rgb, alpha, frame = 0) {
   if (state === "processing") {
-    const rotation = (rotationStep / PROCESSING_FRAME_COUNT) * Math.PI * 2;
-    strokeArc(rgba, size, cx, cy, size * 0.15, size * 0.055, rotation, rotation + 2.4, rgb, alpha);
-  } else if (state === "done") {
-    drawCheck(rgba, size, cx, cy, size * 0.22, rgb, alpha);
-  } else if (state === "error") {
-    drawExclamation(rgba, size, cx, cy, size * 0.24, rgb, alpha);
+    drawLoadingDots(rgba, size, frame % 3, rgb, alpha);
+  } else if (state === "done" || state === "error") {
+    const cx = size * 0.83;
+    const cy = size * 0.83;
+    if (state === "done") {
+      drawCheck(rgba, size, cx, cy, size * 0.19, rgb, alpha);
+    } else {
+      drawExclamation(rgba, size, cx, cy, size * 0.21, rgb, alpha);
+    }
   }
 }
 
 // Colored (non-template) icon: used on Windows/Linux where the tray does
 // its own theming. Dark gray pencil + colored state decoration.
-function makeColorIcon(state, accent, rotationStep) {
+function makeColorIcon(state, accent, frame) {
   const rgba = Buffer.alloc(SIZE * SIZE * 4, 0);
   drawPencil(rgba, SIZE, [60, 60, 60], 255);
-  drawStateDecoration(rgba, SIZE, state, accent, 255, rotationStep);
+  drawStateDecoration(rgba, SIZE, state, accent, 255, frame);
   return buildPng(SIZE, SIZE, rgba);
 }
 
 // macOS template icon: pure black silhouette + alpha; macOS auto-tints for
 // light/dark menu bar. State decoration is drawn in the same black so it
 // stays a valid monochrome template image.
-function makeTemplateIcon(state, rotationStep) {
+function makeTemplateIcon(state, frame) {
   const rgba = Buffer.alloc(SIZE * SIZE * 4, 0);
   drawPencil(rgba, SIZE, [0, 0, 0], 255);
-  drawStateDecoration(rgba, SIZE, state, [0, 0, 0], 255, rotationStep);
+  drawStateDecoration(rgba, SIZE, state, [0, 0, 0], 255, frame);
   return buildPng(SIZE, SIZE, rgba);
 }
 
@@ -250,7 +263,8 @@ const STATE_ACCENTS = {
   error: [210, 70, 70],
 };
 
-const PROCESSING_FRAME_COUNT = 8;
+// One frame per dot in the loading-dots animation (left, middle, right).
+const PROCESSING_FRAME_COUNT = 3;
 
 for (const [state, accent] of Object.entries(STATE_ACCENTS)) {
   writeFileSync(path.join(OUT_DIR, `tray-${state}.png`), makeColorIcon(state, accent, 0));

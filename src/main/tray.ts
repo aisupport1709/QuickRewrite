@@ -22,8 +22,8 @@ const ERROR_REVERT_MS = 5000;
 const MACOS_TRAY_ICON_SIZE = 22;
 
 // Must match PROCESSING_FRAME_COUNT in scripts/generate-icons.mjs.
-const PROCESSING_FRAME_COUNT = 8;
-const PROCESSING_FRAME_INTERVAL_MS = 120;
+const PROCESSING_FRAME_COUNT = 3;
+const PROCESSING_FRAME_INTERVAL_MS = 350;
 
 function iconPath(state: TrayState, processingFrame?: number): string {
   // In dev, assets are copied to dist/assets by esbuild.config.mjs.
