@@ -1,0 +1,140 @@
+:root {
+  color-scheme: light dark;
+  font-family: -apple-system, "Segoe UI", system-ui, sans-serif;
+}
+
+body {
+  margin: 0;
+  padding: 20px 24px 40px;
+  background: canvas;
+  color: canvastext;
+}
+
+h1 {
+  font-size: 20px;
+  margin-bottom: 4px;
+}
+
+h2 {
+  font-size: 15px;
+  margin: 0 0 12px;
+  opacity: 0.85;
+}
+
+section {
+  margin-top: 24px;
+  padding-top: 16px;
+  border-top: 1px solid color-mix(in srgb, currentColor 15%, transparent);
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.row label {
+  width: 100px;
+  flex-shrink: 0;
+  font-size: 13px;
+  opacity: 0.8;
+}
+
+.row input[type="text"],
+.row input[type="password"],
+select {
+  flex: 1;
+  padding: 6px 8px;
+  border-radius: 6px;
+  border: 1px solid color-mix(in srgb, currentColor 25%, transparent);
+  background: color-mix(in srgb, canvas 92%, canvastext 8%);
+  color: inherit;
+  font-size: 13px;
+}
+
+button {
+  padding: 6px 12px;
+  border-radius: 6px;
+  border: 1px solid color-mix(in srgb, currentColor 25%, transparent);
+  background: color-mix(in srgb, canvas 88%, canvastext 12%);
+  color: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+button:hover {
+  background: color-mix(in srgb, canvas 80%, canvastext 20%);
+}
+
+.status {
+  font-size: 12px;
+  min-height: 16px;
+  margin: 4px 0 10px;
+}
+
+.status.ok {
+  color: #2e9e4f;
+}
+
+.status.error {
+  color: #d64545;
+}
+
+.action-row {
+  display: grid;
+  grid-template-columns: 1fr 140px auto;
+  gap: 8px;
+  align-items: start;
+  padding: 10px;
+  margin-bottom: 10px;
+  border: 1px solid color-mix(in srgb, currentColor 15%, transparent);
+  border-radius: 8px;
+}
+
+.action-row .action-name {
+  padding: 6px 8px;
+  border-radius: 6px;
+  border: 1px solid color-mix(in srgb, currentColor 25%, transparent);
+  background: color-mix(in srgb, canvas 92%, canvastext 8%);
+  color: inherit;
+  font-size: 13px;
+}
+
+.action-row .action-hotkey {
+  padding: 6px 8px;
+  border-radius: 6px;
+  border: 1px solid color-mix(in srgb, currentColor 25%, transparent);
+  background: color-mix(in srgb, canvas 92%, canvastext 8%);
+  color: inherit;
+  font-size: 13px;
+  text-align: center;
+  cursor: pointer;
+}
+
+.action-row .action-hotkey.recording {
+  border-color: #4a90d9;
+  color: #4a90d9;
+}
+
+.action-row .action-instruction {
+  grid-column: 1 / -1;
+  min-height: 50px;
+  padding: 6px 8px;
+  border-radius: 6px;
+  border: 1px solid color-mix(in srgb, currentColor 25%, transparent);
+  background: color-mix(in srgb, canvas 92%, canvastext 8%);
+  color: inherit;
+  font-size: 13px;
+  font-family: inherit;
+  resize: vertical;
+}
+
+.action-buttons {
+  display: flex;
+  gap: 6px;
+}
+
+.action-status {
+  grid-column: 1 / -1;
+}

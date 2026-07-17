@@ -1,0 +1,35 @@
+appId: com.quickrewrite.app
+productName: QuickRewrite
+directories:
+  output: release
+files:
+  - dist/**/*
+  - package.json
+extraResources: []
+
+mac:
+  category: public.app-category.productivity
+  icon: assets/icon.png
+  target:
+    - target: dmg
+      arch:
+        - universal
+  darkModeSupport: true
+
+dmg:
+  title: QuickRewrite
+
+win:
+  icon: assets/icon.png
+  target:
+    - target: nsis
+      arch:
+        - x64
+
+nsis:
+  oneClick: true
+  perMachine: false
+  allowToChangeInstallationDirectory: false
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  runAfterFinish: true

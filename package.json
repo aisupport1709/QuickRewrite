@@ -1,0 +1,28 @@
+{
+  "name": "quickrewrite",
+  "version": "1.0.0",
+  "description": "Tray app that rewrites clipboard text via AI on a hotkey",
+  "main": "dist/main/index.js",
+  "private": true,
+  "author": "",
+  "license": "MIT",
+  "scripts": {
+    "build": "node esbuild.config.mjs",
+    "watch": "node esbuild.config.mjs --watch",
+    "start": "npm run build && electron .",
+    "dist": "npm run build && electron-builder",
+    "dist:mac": "npm run build && electron-builder --mac",
+    "dist:win": "npm run build && electron-builder --win"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "electron": "^33.2.1",
+    "electron-builder": "^25.1.8",
+    "esbuild": "^0.24.2",
+    "typescript": "^5.7.2"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.32.1",
+    "electron-store": "^8.2.0"
+  }
+}
