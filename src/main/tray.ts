@@ -15,6 +15,12 @@ const STATE_LABELS: Record<TrayState, string> = {
 const DONE_REVERT_MS = 3000;
 const ERROR_REVERT_MS = 5000;
 
+// Standard macOS menu bar icon size (in points). Source PNGs are rendered
+// at 2x this (44px) for Retina crispness; we always resize down to this
+// point-size explicitly rather than relying on filename-based @2x
+// detection, so the icon renders correctly regardless of source resolution.
+const MACOS_TRAY_ICON_SIZE = 22;
+
 function iconPath(state: TrayState): string {
   // In dev, assets are copied to dist/assets by esbuild.config.mjs.
   const base = path.join(__dirname, "..", "assets", "icons");
@@ -42,9 +48,8 @@ export class TrayController {
     this.onActionClick = opts.onActionClick;
     this.onOpenSettings = opts.onOpenSettings;
 
-    const img = nativeImage.createFromPath(iconPath("empty"));
-    this.tray = new Tray(img.isEmpty() ? nativeImage.createEmpty() : img);
-    if (process.platform === "darwin") this.tray.setImage(this.loadImage("empty"));
+    const initialImage = this.loadImage("empty");
+    this.tray = new Tray(initialImage.isEmpty() ? nativeImage.createEmpty() : initialImage);
     this.render();
   }
 
@@ -82,8 +87,15 @@ export class TrayController {
   }
 
   private loadImage(state: TrayState) {
-    const img = nativeImage.createFromPath(iconPath(state));
-    if (process.platform === "darwin") img.setTemplateImage(true);
+    let img = nativeImage.createFromPath(iconPath(state));
+    if (process.platform === "darwin") {
+      // Explicitly resize to the correct menu bar point-size — the source
+      // PNG is drawn larger (44px) for Retina sharpness, but without this
+      // resize Electron has no way to know the intended display size and
+      // renders it at full pixel size (i.e. oversized in the menu bar).
+      img = img.resize({ width: MACOS_TRAY_ICON_SIZE, height: MACOS_TRAY_ICON_SIZE });
+      img.setTemplateImage(true);
+    }
     return img;
   }
 
