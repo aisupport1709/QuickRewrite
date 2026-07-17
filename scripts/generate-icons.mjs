@@ -147,50 +147,128 @@ function fillTriangle(rgba, size, pts, rgb, alpha) {
   }
 }
 
-/** Small filled circle badge in a corner, used to convey state without recoloring the whole glyph. */
-function drawBadge(rgba, size, rgb, alpha = 255) {
-  const r = size * 0.16;
-  const cx = size * 0.80;
-  const cy = size * 0.80;
+/** Filled circle (used as a badge base, and for the processing dots). */
+function fillCircle(rgba, size, cx, cy, r, rgb, alpha) {
   for (let y = 0; y < size; y++) {
     for (let x = 0; x < size; x++) {
       const dist = Math.hypot(x + 0.5 - cx, y + 0.5 - cy);
-      if (dist <= r) {
-        setPixel(rgba, size, x, y, rgb, alpha);
-      }
+      if (dist <= r) setPixel(rgba, size, x, y, rgb, alpha);
     }
   }
 }
 
+/** Ring (stroked circle outline) — used for the processing spinner arc. */
+function strokeArc(rgba, size, cx, cy, r, stroke, startAngle, endAngle, rgb, alpha) {
+  const steps = 64;
+  for (let i = 0; i <= steps; i++) {
+    const t = startAngle + ((endAngle - startAngle) * i) / steps;
+    const px = cx + Math.cos(t) * r;
+    const py = cy + Math.sin(t) * r;
+    fillCircle(rgba, size, px, py, stroke / 2, rgb, alpha);
+  }
+}
+
+/** Checkmark, drawn as two connected thick line segments. */
+function drawCheck(rgba, size, cx, cy, scale, rgb, alpha) {
+  const stroke = size * 0.09;
+  const x1 = cx - scale * 0.5, y1 = cy;
+  const x2 = cx - scale * 0.12, y2 = cy + scale * 0.4;
+  const x3 = cx + scale * 0.55, y3 = cy - scale * 0.45;
+  for (let y = 0; y < size; y++) {
+    for (let x = 0; x < size; x++) {
+      const d1 = distToSegment(x + 0.5, y + 0.5, x1, y1, x2, y2);
+      const d2 = distToSegment(x + 0.5, y + 0.5, x2, y2, x3, y3);
+      if (Math.min(d1, d2) <= stroke / 2) setPixel(rgba, size, x, y, rgb, alpha);
+    }
+  }
+}
+
+/** Exclamation mark: a vertical bar plus a dot below it. */
+function drawExclamation(rgba, size, cx, cy, scale, rgb, alpha) {
+  const stroke = size * 0.1;
+  const barTopY = cy - scale * 0.5;
+  const barBottomY = cy + scale * 0.08;
+  for (let y = 0; y < size; y++) {
+    for (let x = 0; x < size; x++) {
+      const d = distToSegment(x + 0.5, y + 0.5, cx, barTopY, cx, barBottomY);
+      if (d <= stroke / 2) setPixel(rgba, size, x, y, rgb, alpha);
+    }
+  }
+  fillCircle(rgba, size, cx, cy + scale * 0.32, stroke / 2, rgb, alpha);
+}
+
+/**
+ * Draws the state-specific decoration near the pencil tip.
+ * - ready/empty: nothing extra (plain pencil)
+ * - processing: a partial ring "spinner" arc near the tip; rotationStep
+ *   (0-7) advances the arc's start angle to produce an animated spin
+ *   when the frames are cycled by the tray controller
+ * - done: a checkmark badge
+ * - error: an exclamation badge
+ * All shapes are pure silhouette so they remain valid macOS template images.
+ */
+function drawStateDecoration(rgba, size, state, rgb, alpha, rotationStep = 0) {
+  // Badge/decoration is centered near the lower-left (away from the pencil
+  // tip at upper-right) so it doesn't collide with the shaft.
+  const cx = size * 0.30;
+  const cy = size * 0.68;
+
+  if (state === "processing") {
+    const rotation = (rotationStep / PROCESSING_FRAME_COUNT) * Math.PI * 2;
+    strokeArc(rgba, size, cx, cy, size * 0.15, size * 0.055, rotation, rotation + 2.4, rgb, alpha);
+  } else if (state === "done") {
+    drawCheck(rgba, size, cx, cy, size * 0.22, rgb, alpha);
+  } else if (state === "error") {
+    drawExclamation(rgba, size, cx, cy, size * 0.24, rgb, alpha);
+  }
+}
+
 // Colored (non-template) icon: used on Windows/Linux where the tray does
-// its own theming. Dark gray pencil + colored state badge.
-function makeColorIcon({ badge }) {
+// its own theming. Dark gray pencil + colored state decoration.
+function makeColorIcon(state, accent, rotationStep) {
   const rgba = Buffer.alloc(SIZE * SIZE * 4, 0);
   drawPencil(rgba, SIZE, [60, 60, 60], 255);
-  if (badge) drawBadge(rgba, SIZE, badge, 255);
+  drawStateDecoration(rgba, SIZE, state, accent, 255, rotationStep);
   return buildPng(SIZE, SIZE, rgba);
 }
 
 // macOS template icon: pure black silhouette + alpha; macOS auto-tints for
-// light/dark menu bar. No badge here (template images are monochrome by
-// OS contract) — state is instead conveyed via the tooltip and menu label.
-function makeTemplateIcon() {
+// light/dark menu bar. State decoration is drawn in the same black so it
+// stays a valid monochrome template image.
+function makeTemplateIcon(state, rotationStep) {
   const rgba = Buffer.alloc(SIZE * SIZE * 4, 0);
   drawPencil(rgba, SIZE, [0, 0, 0], 255);
+  drawStateDecoration(rgba, SIZE, state, [0, 0, 0], 255, rotationStep);
   return buildPng(SIZE, SIZE, rgba);
 }
 
-const STATE_BADGES = {
-  empty: null,
+const STATE_ACCENTS = {
+  empty: [150, 150, 150],
   ready: [70, 160, 90],
   processing: [70, 130, 220],
   done: [50, 180, 90],
   error: [210, 70, 70],
 };
 
-for (const [state, badge] of Object.entries(STATE_BADGES)) {
-  writeFileSync(path.join(OUT_DIR, `tray-${state}.png`), makeColorIcon({ badge }));
-  writeFileSync(path.join(OUT_DIR, `tray-${state}Template.png`), makeTemplateIcon());
+const PROCESSING_FRAME_COUNT = 8;
+
+for (const [state, accent] of Object.entries(STATE_ACCENTS)) {
+  writeFileSync(path.join(OUT_DIR, `tray-${state}.png`), makeColorIcon(state, accent, 0));
+  writeFileSync(path.join(OUT_DIR, `tray-${state}Template.png`), makeTemplateIcon(state, 0));
+}
+
+// Extra animation frames for the processing state — the tray controller
+// cycles through these on an interval so "processing" reads as active
+// motion rather than a static icon.
+for (let frame = 0; frame < PROCESSING_FRAME_COUNT; frame++) {
+  writeFileSync(
+    path.join(OUT_DIR, `tray-processing-${frame}.png`),
+    makeColorIcon("processing", STATE_ACCENTS.processing, frame)
+  );
+  writeFileSync(
+    path.join(OUT_DIR, `tray-processing-${frame}Template.png`),
+    makeTemplateIcon("processing", frame)
+  );
 }
 
 // App icon (used for the settings window / installer; must be >=512x512).

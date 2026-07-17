@@ -19,6 +19,8 @@ if (!gotLock) {
   app.whenReady().then(main);
 }
 
+let activeTray: TrayController | undefined;
+
 function main(): void {
   if (process.platform === "darwin") {
     app.dock?.hide();
@@ -29,6 +31,7 @@ function main(): void {
     onActionClick: (action) => runRewriteAction(action, tray),
     onOpenSettings: () => openSettingsWindow(tray),
   });
+  activeTray = tray;
 
   // Sync login-item state with stored preference on startup (handles cases
   // where the OS setting drifted, e.g. user removed it manually). Only
@@ -60,4 +63,5 @@ function main(): void {
 app.on("before-quit", () => {
   (app as unknown as { isQuitting: boolean }).isQuitting = true;
   unregisterAllHotkeys();
+  activeTray?.destroy();
 });
