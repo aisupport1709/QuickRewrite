@@ -45,8 +45,13 @@ async function init(): Promise<void> {
   saveKeyBtn.addEventListener("click", saveApiKey);
   testKeyBtn.addEventListener("click", testApiKey);
   addActionBtn.addEventListener("click", addAction);
-  launchAtLoginInput.addEventListener("change", () => {
-    bridge.setLaunchAtLogin(launchAtLoginInput.checked);
+  launchAtLoginInput.addEventListener("change", async () => {
+    const desired = launchAtLoginInput.checked;
+    const result = await bridge.setLaunchAtLogin(desired);
+    if (!result.ok) {
+      launchAtLoginInput.checked = !desired;
+      alert(result.error || "Failed to update login item setting.");
+    }
   });
 }
 

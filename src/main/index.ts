@@ -31,9 +31,17 @@ function main(): void {
   });
 
   // Sync login-item state with stored preference on startup (handles cases
-  // where the OS setting drifted, e.g. user removed it manually).
+  // where the OS setting drifted, e.g. user removed it manually). Only
+  // touch it when enabled — and never let a native OS error (e.g. macOS
+  // rejecting registration for an unsigned/dev-mode app) block startup.
   const config = getConfig();
-  app.setLoginItemSettings({ openAtLogin: config.launchAtLogin });
+  if (config.launchAtLogin) {
+    try {
+      app.setLoginItemSettings({ openAtLogin: true });
+    } catch (err) {
+      console.error("Failed to sync login item setting:", err);
+    }
+  }
 
   registerHotkeys(config.actions, (action) => runRewriteAction(action, tray));
 

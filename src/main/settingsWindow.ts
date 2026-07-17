@@ -103,7 +103,13 @@ function registerIpcHandlers(tray: TrayController): void {
 
   ipcMain.handle("settings:setLaunchAtLogin", (_e, value: boolean) => {
     setLaunchAtLogin(value);
-    app.setLoginItemSettings({ openAtLogin: value });
+    try {
+      app.setLoginItemSettings({ openAtLogin: value });
+      return { ok: true };
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Failed to update login item";
+      return { ok: false, error: message };
+    }
   });
 
   ipcMain.handle("settings:addAction", (_e, action: Omit<RewriteAction, "id">) => {

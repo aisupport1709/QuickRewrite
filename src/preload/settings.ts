@@ -6,7 +6,7 @@ export interface SettingsBridge {
   setProviderAndModel(provider: ProviderId, model: string): Promise<void>;
   setApiKey(provider: ProviderId, key: string): Promise<void>;
   testApiKey(provider: ProviderId, model: string, key: string): Promise<{ ok: boolean; message: string }>;
-  setLaunchAtLogin(value: boolean): Promise<void>;
+  setLaunchAtLogin(value: boolean): Promise<{ ok: boolean; error?: string }>;
   addAction(action: Omit<RewriteAction, "id">): Promise<{ ok: boolean; error?: string }>;
   updateAction(action: RewriteAction): Promise<{ ok: boolean; error?: string }>;
   deleteAction(id: string): Promise<void>;
